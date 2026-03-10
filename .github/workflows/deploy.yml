@@ -25,12 +25,25 @@ jobs:
           zip -r ../function.zip *
           cd ..
 
+      - name: Install AWS CLI
+        run: |
+          sudo apt update
+          sudo apt install -y awscli
+
+      - name: Upload zip to Yandex Cloud Storage
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.STORAGE_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_SECRET_KEY }}
+        run: |
+          aws configure set default.region ru-central1
+          aws --endpoint-url=https://storage.yandexcloud.net s3 cp ./function.zip s3://banner-storage-pilot/function-${{ github.sha }}.zip
+
       - name: Deploy to Yandex Cloud
         uses: yc-actions/yc-sls-function@v2
         with:
           yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
           folder-id: ${{ secrets.FOLDER_ID }}
-          function-name: banner-generator   # или banner-generator-api, проверь!
+          function-name: banner-generator-api
           runtime: python312
           entrypoint: handler.handler
           memory: 1024Mb
@@ -41,5 +54,5 @@ jobs:
             BUCKET_NAME=${{ secrets.BUCKET_NAME }}
             FOLDER_ID=${{ secrets.FOLDER_ID }}
             API_KEY=${{ secrets.API_KEY }}
-          include: |
-            ./function.zip
+          package-bucket-name: banner-storage-pilot
+          package-object-name: function-${{ github.sha }}.zip
