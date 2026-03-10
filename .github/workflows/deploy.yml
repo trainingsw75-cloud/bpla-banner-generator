@@ -1,0 +1,45 @@
+name: Deploy to Yandex Cloud
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies and create archive
+        run: |
+          mkdir -p build
+          cp handler.py requirements.txt build/
+          cd build
+          pip install -r requirements.txt -t .
+          zip -r ../function.zip *
+          cd ..
+
+      - name: Deploy to Yandex Cloud
+        uses: yc-actions/yc-sls-function@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          folder-id: ${{ secrets.FOLDER_ID }}
+          function-name: banner-generator   # или banner-generator-api, проверь!
+          runtime: python312
+          entrypoint: handler.handler
+          memory: 1024Mb
+          execution-timeout: 180
+          environment: |
+            STORAGE_ACCESS_KEY=${{ secrets.STORAGE_ACCESS_KEY }}
+            STORAGE_SECRET_KEY=${{ secrets.STORAGE_SECRET_KEY }}
+            BUCKET_NAME=${{ secrets.BUCKET_NAME }}
+            FOLDER_ID=${{ secrets.FOLDER_ID }}
+            API_KEY=${{ secrets.API_KEY }}
+          include: |
+            ./function.zip
