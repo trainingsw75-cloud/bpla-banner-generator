@@ -2,3 +2,4 @@ boto3
 pillow
 qrcode[pil]
 requests
+clck>=1.0.0
