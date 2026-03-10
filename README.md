@@ -24,4 +24,5 @@ API-сервис и веб-интерфейс для автоматическо�
 - [ ] Добавление базы учебных центров с геокартой.
 
 ## Авторы
-- [povarila](https://github.com/povarila) — идея и разработка.
+- [povarila](https://github.com/povarila) —trainingsw75-cloud
+bpla-banner-generator идея и разработка.
