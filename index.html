@@ -1,68 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор баннеров БПЛА</title>
-    <style>
-        body { font-family: 'Arial', sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 90%; max-width: 500px; }
-        h1 { text-align: center; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
-        input[type=text] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { background-color: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 20px; }
-        button:hover { background-color: #45a049; }
-        #result { margin-top: 20px; text-align: center; }
-        #result img { max-width: 100%; border: 1px solid #ccc; border-radius: 4px; }
-        .error { color: red; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🇷🇺 Генератор баннеров БПЛА</title>
+<style>
+  :root{--ink:#12233a;--muted:#5b6b80;--line:#d7e0ea;--navy:#0d2647;--blue:#12457e;--gold:#e2b23c;--red:#c1121f}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);line-height:1.6;
+    background:linear-gradient(180deg,#eef3f9,#e2ebf4);min-height:100vh}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px 60px}
+  h1{text-align:center;font-size:26px;font-weight:900;color:var(--navy);margin-bottom:4px}
+  .sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:20px}
+  .box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 14px 30px rgba(20,40,70,.08)}
+  label{font-weight:700;font-size:14px;display:block;margin:12px 0 5px}
+  input{width:100%;padding:11px 12px;font-size:16px;border:2px solid var(--line);border-radius:11px}
+  input:focus{outline:none;border-color:var(--blue)}
+  .btn{margin-top:16px;width:100%;padding:14px;border:0;border-radius:12px;cursor:pointer;font-size:16px;font-weight:800;color:#fff;
+    background:linear-gradient(135deg,var(--blue),var(--navy));box-shadow:0 8px 18px rgba(18,69,126,.3)}
+  .btn.gold{background:linear-gradient(135deg,var(--gold),#c78f1e);color:#3a2a00}
+  canvas{width:100%;height:auto;border-radius:12px;margin-top:18px;border:1px solid var(--line);display:none}
+  .note{color:var(--muted);font-size:13px;margin-top:10px;text-align:center}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🇷🇺 Генератор баннеров БПЛА</h1>
-        <label for="title">Заголовок баннера:</label>
-        <input type="text" id="title" name="title" value="Операторы БПЛА">
+<div class="wrap">
+  <h1>🇷🇺 Генератор баннеров БПЛА</h1>
+  <p class="sub">Баннер 1200×630 рисуется прямо в браузере · с QR-кодом · бесплатно</p>
 
-        <label for="city">Город:</label>
-        <input type="text" id="city" name="city" value="Москва">
+  <div class="box">
+    <label>Заголовок баннера</label>
+    <input id="title" value="Операторы БПЛА">
+    <label>Подзаголовок / город</label>
+    <input id="city" value="Москва">
+    <label>Подпись (кто)</label>
+    <input id="author" value="Обучение операторов БПЛА">
+    <label>Ссылка для QR-кода</label>
+    <input id="url" value="https://mil.ru">
+    <button class="btn" onclick="makeBanner()">🎨 Создать баннер</button>
+    <canvas id="cv" width="1200" height="630"></canvas>
+    <button class="btn gold" id="dl" style="display:none" onclick="download()">⬇️ Скачать баннер (PNG)</button>
+    <p class="note" id="note"></p>
+  </div>
+</div>
 
-        <label for="url">Ссылка для QR-кода:</label>
-        <input type="text" id="url" name="url" value="https://mil.ru">
+<script>
+  var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
 
-        <button onclick="generateBanner()">Создать баннер</button>
+  function wrap(ctx,text,x,y,maxW,lh){
+    var words=text.split(" "), line="", yy=y;
+    for(var i=0;i<words.length;i++){
+      var test=line+words[i]+" ";
+      if(ctx.measureText(test).width>maxW && i>0){ ctx.fillText(line.trim(),x,yy); line=words[i]+" "; yy+=lh; }
+      else line=test;
+    }
+    ctx.fillText(line.trim(),x,yy); return yy;
+  }
 
-        <div id="result">
-            <!-- Здесь появится результат -->
-        </div>
-    </div>
+  function drawBase(){
+    // фон — тёмно-синий градиент
+    var g=ctx.createLinearGradient(0,0,1200,630);
+    g.addColorStop(0,"#0d2647"); g.addColorStop(1,"#12457e");
+    ctx.fillStyle=g; ctx.fillRect(0,0,1200,630);
+    // триколор-полоса слева
+    ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,16,210);
+    ctx.fillStyle="#0039A6"; ctx.fillRect(0,210,16,210);
+    ctx.fillStyle="#D52B1E"; ctx.fillRect(0,420,16,210);
+    // дрон-мотив
+    ctx.font="150px serif"; ctx.textAlign="right";
+    ctx.fillText("🛩️",1140,180);
+    ctx.textAlign="left";
+  }
 
-    <script>
-        async function generateBanner() {
-            const title = document.getElementById('title').value;
-            const city = document.getElementById('city').value;
-            const url = document.getElementById('url').value;
-            const resultDiv = document.getElementById('result');
+  function drawText(title,city,author){
+    ctx.textAlign="left";
+    ctx.fillStyle="#e2b23c"; ctx.font="bold 30px Arial"; ctx.fillText("🇷🇺 "+(city||""),70,110);
+    ctx.fillStyle="#ffffff"; ctx.font="bold 88px Arial";
+    var endY=wrap(ctx,title||"Баннер",70,230,900,96);
+    ctx.fillStyle="#cfe0f3"; ctx.font="500 34px Arial";
+    wrap(ctx,author||"",70,endY+70,760,44);
+    // подложка под QR
+    ctx.fillStyle="#ffffff"; ctx.fillRect(1010,450,160,160);
+  }
 
-            resultDiv.innerHTML = '<p>Генерация...</p>';
+  var ready=false;
+  function makeBanner(){
+    var title=document.getElementById("title").value,
+        city=document.getElementById("city").value,
+        author=document.getElementById("author").value,
+        url=document.getElementById("url").value||"https://mil.ru";
+    var note=document.getElementById("note");
+    drawBase(); drawText(title,city,author);
+    cv.style.display="block";
+    note.textContent="Загружаю QR-код…";
+    var qr=new Image();
+    qr.crossOrigin="anonymous";
+    qr.onload=function(){
+      ctx.drawImage(qr,1020,460,140,140);
+      ready=true; document.getElementById("dl").style.display="block";
+      note.textContent="Готово! Нажмите «Скачать».";
+    };
+    qr.onerror=function(){
+      // QR не загрузился — рисуем рамку-заглушку, баннер всё равно готов
+      ctx.strokeStyle="#0d2647"; ctx.strokeRect(1020,460,140,140);
+      ctx.fillStyle="#0d2647"; ctx.font="16px Arial"; ctx.fillText("QR",1075,535);
+      ready=true; document.getElementById("dl").style.display="block";
+      note.textContent="Баннер готов (QR-сервис недоступен — возможно, нужен VPN).";
+    };
+    qr.src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=0&data="+encodeURIComponent(url);
+  }
 
-            // ⚠️ ЗАМЕНИ ЭТОТ URL НА АКТУАЛЬНЫЙ URL ТВОЕЙ ФУНКЦИИ banner-generator-api
-            const functionUrl = 'https://functions.yandexcloud.net/d4enmbc4m262jgeu9rin';
-
-            const requestUrl = `${functionUrl}?title=${encodeURIComponent(title)}&city=${encodeURIComponent(city)}&url=${encodeURIComponent(url)}`;
-
-            try {
-                const response = await fetch(requestUrl);
-                const data = await response.json();
-
-                if (data.image_url) {
-                    resultDiv.innerHTML = `<h3>Готово!</h3><img src="${data.image_url}" alt="Generated Banner">`;
-                } else {
-                    resultDiv.innerHTML = `<p class="error">Ошибка: ${JSON.stringify(data)}</p>`;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<p class="error">Ошибка запроса: ${error}</p>`;
-            }
-        }
-    </script>
+  function download(){
+    if(!ready) return;
+    try{
+      var a=document.createElement("a");
+      a.download="banner-bpla.png"; a.href=cv.toDataURL("image/png"); a.click();
+    }catch(e){
+      document.getElementById("note").textContent="Не удалось скачать автоматически — нажмите на баннер и сохраните вручную.";
+    }
+  }
+</script>
 </body>
 </html>
