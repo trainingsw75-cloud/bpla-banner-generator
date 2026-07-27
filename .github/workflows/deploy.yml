@@ -12,34 +12,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies and create archive
-        run: |
-          mkdir -p build
-          cp handler.py requirements.txt build/
-          cd build
-          pip install -r requirements.txt -t .
-          zip -r ../function.zip *
-          cd ..
-
-      # AWS CLI на серверах ubuntu-24.04 уже установлен.
-      # Прежний шаг `sudo apt install -y awscli` падал с ошибкой 100 —
-      # пакета awscli в репозитории Ubuntu 24.04 больше нет.
-      - name: Check AWS CLI
-        run: aws --version
-
-      - name: Upload zip to Yandex Cloud Storage
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.STORAGE_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_SECRET_KEY }}
-        run: |
-          aws configure set default.region ru-central1
-          aws --endpoint-url=https://storage.yandexcloud.net s3 cp ./function.zip s3://banner-storage-pilot/function-${{ github.sha }}.zip
-
+      # Библиотеки из requirements.txt Яндекс-облако ставит само при сборке версии,
+      # поэтому больше не упаковываем их руками: прежний архив весил 51 МБ и не проходил.
+      # В функцию едут только два файла — код и список библиотек.
       - name: Deploy to Yandex Cloud
         uses: yc-actions/yc-sls-function@v2
         with:
@@ -50,11 +25,13 @@ jobs:
           entrypoint: handler.handler
           memory: 1024Mb
           execution-timeout: 180
+          bucket: banner-storage-pilot
+          include: |
+            handler.py
+            requirements.txt
           environment: |
             STORAGE_ACCESS_KEY=${{ secrets.STORAGE_ACCESS_KEY }}
             STORAGE_SECRET_KEY=${{ secrets.STORAGE_SECRET_KEY }}
             BUCKET_NAME=${{ secrets.BUCKET_NAME }}
             FOLDER_ID=${{ secrets.FOLDER_ID }}
             API_KEY=${{ secrets.API_KEY }}
-          package-bucket-name: banner-storage-pilot
-          package-object-name: function-${{ github.sha }}.zip
