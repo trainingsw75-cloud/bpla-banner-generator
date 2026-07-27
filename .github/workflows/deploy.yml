@@ -3,16 +3,17 @@ name: Deploy to Yandex Cloud
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -25,10 +26,11 @@ jobs:
           zip -r ../function.zip *
           cd ..
 
-      - name: Install AWS CLI
-        run: |
-          sudo apt update
-          sudo apt install -y awscli
+      # AWS CLI на серверах ubuntu-24.04 уже установлен.
+      # Прежний шаг `sudo apt install -y awscli` падал с ошибкой 100 —
+      # пакета awscli в репозитории Ubuntu 24.04 больше нет.
+      - name: Check AWS CLI
+        run: aws --version
 
       - name: Upload zip to Yandex Cloud Storage
         env:
